@@ -8,7 +8,7 @@
 
 ##  Description: 
 
-
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -133,19 +133,31 @@ def prepareDataset(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.9, te
         test_size (float, optional): Ratio of test set size to the whole dataset. Defaults to 0.2.
         val_size (float, optional): Ratio of validation set size to the train set. Defaults to 0.2.
         random_state (int, optional): Random state. Defaults to 28.
-        transform (function, optional): Transform function. Defaults to lambda x:x.
         show (bool, optional): Whether to show the plot. Defaults to True.
 
     Returns:
         X_train (numpy.ndarray): Train set features.
     """
-
+    transform = lambda x: x[60:150, :, :]
     df = readDataset(dataset_csv, dataset_folder, train_cols, transform=transform)
     df = balanceDataset(df, reduce_ratio=reduce_ratio, show=show)
     X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = splitDataset(df, train_cols, test_size=test_size, val_size=val_size, random_state=random_state)
     return X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test
 
 def validate(X, y, meta, dataset_folder, dataset_csv, n=5, transform=lambda x:x, show=True):
+    """Validates a dataset.
+
+    Args:
+        X (numpy.ndarray): Images.
+        y (numpy.ndarray): Steering angles.
+        meta (list): Metadata (Image paths).
+        dataset_folder (str): Path to dataset folder.
+        dataset_csv (str): Path to csv file.
+        n (int, optional): Number of samples to be validated. Defaults to 5.
+        transform (function, optional): Transform function. Defaults to lambda x:x.
+        show (bool, optional): Whether to show the plot. Defaults to True.
+    """
+
     df = pd.read_csv(dataset_csv, header=None, names=['center', 'left', 'right', 'steering', 'throttle', 'brake', 'speed'])
     df[['center', 'left', 'right']] = df[['center', 'left', 'right']].applymap(lambda x: os.path.join(dataset_folder, x.split('\\')[-1]))
     for i in range(n):
@@ -164,18 +176,55 @@ def validate(X, y, meta, dataset_folder, dataset_csv, n=5, transform=lambda x:x,
             plt.show()
             plt.close()
     log.info('\033[92m' + 'Validation passed!' + '\033[0m')
+
+def imageGenerator(X, y, brightness_range=(0.4, 0.6), batch_size=32, shuffle=True):
+    """Generates and augments images. Augmentation includes brightness adjustment.
+
+    Args:
+        X (numpy.ndarray): Images.
+        y (numpy.ndarray): Steering angles.
+        brightness_range (tuple, optional): Brightness range. Defaults to (0.2, 0.8).
+        batch_size (int, optional): Batch size. Defaults to 32.
+        shuffle (bool, optional): Whether to shuffle the data. Defaults to True.
+
+    Returns:
+        generator: Generator of images.
+    """
+    datagen = ImageDataGenerator(
+        brightness_range=brightness_range,
+    )
+    datagen.fit(X)
+    return datagen.flow(X, y, batch_size=batch_size, shuffle=shuffle)
     
+def visualizeGenerator(gen):
+    """Visualizes a generator.
+
+    Args:
+        gen (generator): Generator of images.
+    """
+    X, y = gen.next()
+    print(X.shape, y.shape)
+    X = X.astype(np.float32) / 255.
+    plt.figure(figsize=(10, 10))
+    for i in range(16):
+        plt.subplot(4, 4, i+1)
+        plt.imshow(X[i])
+        plt.title(f'Steering angle: {y[i]}')
+        plt.axis('off')
+    plt.show()
 
 
 if __name__  == '__main__':
     ##  Dataset...
     dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
     dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
-    train_cols = ['center']  ##  Or it can be ['center', 'left', 'right']
     transform = lambda x: x[60:150, :, :]
+    train_cols = ['center']  ##  Or it can be ['center', 'left', 'right']
     # train_cols = ['center', 'left', 'right']
-    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(dataset_folder, dataset_csv, train_cols, transform=transform, show=False)
+    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(dataset_folder, dataset_csv, train_cols, show=False)
     log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
     log.info(f'X_val shape: {X_val.shape}, y_val shape: {y_val.shape}')
     log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
-    validate(X_train, y_train, meta_train, dataset_folder, dataset_csv, n=5, transform=transform, show=True)
+    validate(X_train, y_train, meta_train, dataset_folder, dataset_csv, n=5, transform=transform, show=False)
+    gen_train = imageGenerator(X_train, y_train, (0.4, 0.6), batch_size=16, shuffle=True)
+    visualizeGenerator(gen_train)
