@@ -51,7 +51,14 @@ def readDataset(dataset_csv, dataset_folder, train_cols, transform=lambda x: x):
     df = pd.read_csv(dataset_csv, header=None, names=['center', 'left', 'right', 'steering', 'throttle', 'reverse', 'speed'])
     df[train_cols] = df[train_cols].applymap(lambda x: os.path.join(dataset_folder, x.split('\\')[-1]))
     df[['center_path', 'left_path', 'right_path']] = df[['center', 'left', 'right']]
+    df_flip = df.copy()  ##  Copying the dataframe to flip it later...
     df[train_cols] = df[train_cols].applymap(lambda x: np.asarray(Image.open(x)))
+    ##  Flipping each image and negating its steering angle...
+    df_flip[train_cols] = df_flip[train_cols].applymap(lambda x: np.asarray(Image.open(x).transpose(Image.FLIP_LEFT_RIGHT)))
+    df_flip['steering'] = df_flip['steering'].apply(lambda x: -x)
+    ##  Concatenating the original and flipped dataframes...
+    df = pd.concat([df, df_flip], ignore_index=True)
+    ##  Applying the transformation function (e.x. cropping)...
     df[train_cols] = df[train_cols].applymap(transform)
     return df
 
@@ -148,8 +155,8 @@ def validate(X, y, meta, dataset_folder, dataset_csv, n=5, transform=lambda x:x,
         img_path = meta[index]
         img_gt = transform(np.asarray(Image.open(img_path)))  ##  Ground truth image
         steering_gt = df[df.apply(lambda x: img_path in x.values, axis=1)]['steering'].values[0]
-        assert steering == steering_gt, f'Steering angle {steering} is not equal to its version in the dataset.'
-        assert np.all(img == img_gt), f'Image {img_path} is not equal to its version in the dataset.'
+        assert steering == steering_gt or steering == -steering_gt, f'Steering angle {steering} is not equal to its version in the dataset.'
+        assert np.all(img == img_gt) or np.all(img == img_gt[:, ::-1, :]), f'Image {img_path} is not equal to its version in the dataset.'
         if show: 
             plt.figure(figsize=(10, 5))
             plt.imshow(img)
