@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import logging as log
-from mh_dave2_data import prepareDataset, imageGenerator
+from mh_dave2_data import prepareDataset
 from git_dave2_model import loadModel
 from functools import partial
 
@@ -39,8 +39,6 @@ def evaluate(train, val, test, model, verbose=True):
     loss_test = model.evaluate(test[0], test[1], steps=len(test[0])//128)
     verbose and log.info(f'Test Loss: {loss_test}')
     return {'train': loss_train, 'val': loss_val, 'test': loss_test}
-
-eval_type = 'git' ##  One of ['mh', 'git']
  
 
 ##  Dataset...
@@ -63,6 +61,3 @@ losses = {model_type: eval(model=model) for model_type, model in models.items()}
 df_eval = pd.DataFrame(losses, index=['train', 'val', 'test']).T
 df_eval.to_latex('eval.tex', float_format='%.3f')
 print(df_eval)
-
-
-
