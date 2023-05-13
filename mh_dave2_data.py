@@ -33,8 +33,8 @@ def plotHistogram(df, col='steering', show=True, output_name=None):
     plt.hist(df['steering'], bins=100)
     plt.xlabel('Steering Angle')
     plt.ylabel('Frequency')
-    show and plt.show()
     output_name and plt.savefig(output_name)
+    show and plt.show()
     plt.close()
 
 def readDataset(dataset_csv, dataset_folder, train_cols, transform=lambda x: x):
@@ -205,7 +205,7 @@ def visualizeGenerator(gen):
     """
     X, y = gen.next()
     X = X.astype(np.float32) / 255.
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(10, 8))
     for i in range(16):
         plt.subplot(4, 4, i+1)
         plt.imshow(X[i])
@@ -220,7 +220,7 @@ if __name__  == '__main__':
     ##  Dataset...
     dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
     dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
-    transform = lambda x: x[60:150, :, :]  ##  Crop the image
+    transform = lambda x: x[60:160, :, :]  ##  Crop the image
     # transform = lambda x: x  ##  No transform
     train_cols = ['center']  ##  Or it can be ['center', 'left', 'right']
     # train_cols = ['center', 'left', 'right']
