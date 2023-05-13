@@ -39,14 +39,17 @@ else:
 dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
 dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
 train_cols = ['center']
-transform = lambda x: x[60:150, :, :]
+transform = lambda x: x[70:136, 100:300, :]
+epochs = 20
+batch_size = 128
+reduce_ratio = 0.7
 # train_cols = ['center', 'left', 'right']
-X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.2, test_size=0.1, val_size=0.1, transform=transform, show=True)
+X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(dataset_folder, dataset_csv, train_cols, reduce_ratio=reduce_ratio, test_size=0.1, val_size=0.1, transform=transform, show=True)
 log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
 log.info(f'X_valid shape: {X_val.shape}, y_valid shape: {y_val.shape}')
 log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
-gen_train = imageGenerator(X_train, y_train, batch_size=128)
-gen_val = imageGenerator(X_val, y_val, batch_size=128)
+gen_train = imageGenerator(X_train, y_train, batch_size=batch_size)
+gen_val = imageGenerator(X_val, y_val, batch_size=batch_size)
 
 ##  Model...
 image_shape = X_train.shape[1:]
@@ -54,7 +57,7 @@ model = generateModel(image_shape)
 model.compile(optimizer=Adam(lr=1e-4), loss='mae')
 ckpt = ModelCheckpoint('mh_dave2', monitor='val_loss', verbose=1, save_best_only=True, mode='min', save_weights_only=False)
 ##  Training...
-history = model.fit(gen_train, epochs=20, steps_per_epoch=len(X_train)//128, validation_data=gen_val, validation_steps=len(X_val)//128, callbacks=[ckpt])
+history = model.fit(gen_train, epochs=epochs, steps_per_epoch=len(X_train)//batch_size, validation_data=gen_val, validation_steps=len(X_val)//batch_size, callbacks=[ckpt])
 
 ##  Plotting training history...
 plt.figure(figsize=(10, 5))
@@ -63,6 +66,7 @@ plt.plot(history.history['val_loss'], label='Validation Loss')
 plt.legend()
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
+plt.xticks(range(epochs))
 plt.title('Training History')
 plt.savefig('mh_dave2_train.pdf')
 plt.show()
