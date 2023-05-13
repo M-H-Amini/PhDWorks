@@ -20,7 +20,7 @@ import os
 
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def plotHistogram(df, col='steering', show=True):
+def plotHistogram(df, col='steering', show=True, output_name=None):
     """Plots histogram of a column of a dataframe.
 
     Args:
@@ -34,6 +34,7 @@ def plotHistogram(df, col='steering', show=True):
     plt.xlabel('Steering Angle')
     plt.ylabel('Frequency')
     show and plt.show()
+    output_name and plt.savefig(output_name)
     plt.close()
 
 def readDataset(dataset_csv, dataset_folder, train_cols, transform=lambda x: x):
@@ -76,10 +77,10 @@ def balanceDataset(df, col='steering', reduce_ratio=0.9, show=True):
     """
     ##  Reducing 0 steering angles...
     log.info(f'Imbalanced dataset size: {len(df)}')
-    plotHistogram(df, show=show)
+    plotHistogram(df, show=show, output_name='dataset_hist_imbalanced.pdf')
     df = df.drop(df[df['steering'] == 0].sample(frac=reduce_ratio, random_state=28).index).reset_index(drop=True)
     log.info(f'Balanced dataset size: {len(df)}')
-    plotHistogram(df, show=show)
+    plotHistogram(df, show=show, output_name='dataset_hist_balanced.pdf')
     return df
 
 def splitDataset(df, train_cols, test_size=0.2, val_size=0.2, random_state=28):
@@ -133,12 +134,12 @@ def prepareDataset(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.9, te
         test_size (float, optional): Ratio of test set size to the whole dataset. Defaults to 0.2.
         val_size (float, optional): Ratio of validation set size to the train set. Defaults to 0.2.
         random_state (int, optional): Random state. Defaults to 28.
+        transform (function, optional): Transform function to be applied to images. Defaults to lambda x:x.
         show (bool, optional): Whether to show the plot. Defaults to True.
 
     Returns:
         X_train (numpy.ndarray): Train set features.
     """
-    transform = lambda x: x[60:150, :, :]
     df = readDataset(dataset_csv, dataset_folder, train_cols, transform=transform)
     df = balanceDataset(df, reduce_ratio=reduce_ratio, show=show)
     X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = splitDataset(df, train_cols, test_size=test_size, val_size=val_size, random_state=random_state)
@@ -203,25 +204,27 @@ def visualizeGenerator(gen):
         gen (generator): Generator of images.
     """
     X, y = gen.next()
-    print(X.shape, y.shape)
     X = X.astype(np.float32) / 255.
     plt.figure(figsize=(10, 10))
     for i in range(16):
         plt.subplot(4, 4, i+1)
         plt.imshow(X[i])
-        plt.title(f'Steering angle: {y[i]}')
+        plt.title(f'Steering angle: {round(y[i], 2)}')
         plt.axis('off')
+    plt.savefig('dataset.pdf', bbox_inches='tight')
     plt.show()
+    
 
 
 if __name__  == '__main__':
     ##  Dataset...
     dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
     dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
-    transform = lambda x: x[60:150, :, :]
+    transform = lambda x: x[60:150, :, :]  ##  Crop the image
+    # transform = lambda x: x  ##  No transform
     train_cols = ['center']  ##  Or it can be ['center', 'left', 'right']
     # train_cols = ['center', 'left', 'right']
-    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(dataset_folder, dataset_csv, train_cols, show=False)
+    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.8, transform=transform, show=True)
     log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
     log.info(f'X_val shape: {X_val.shape}, y_val shape: {y_val.shape}')
     log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
