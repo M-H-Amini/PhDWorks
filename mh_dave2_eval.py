@@ -56,7 +56,7 @@ log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
 ##  Evaluation...
 log.info('Evaluating model on train, val and test sets...')
 eval = partial(evaluate, train=(X_train, y_train), val=(X_val, y_val), test=(X_test, y_test), verbose=False)
-models = {'mh': load_model('mh_dave2'), 'git': loadModel('DAVE2-Keras-master/model.h5')}
+models = {'Dave2Scratch': load_model('mh_dave2'), 'Dave2Git': loadModel('DAVE2-Keras-master/model.h5')}
 losses = {model_type: eval(model=model) for model_type, model in models.items()}
 df_eval = pd.DataFrame(losses, index=['train', 'val', 'test']).T
 df_eval.to_latex('eval.tex', float_format='%.3f')
