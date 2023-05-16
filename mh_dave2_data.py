@@ -30,7 +30,7 @@ def plotHistogram(df, col='steering', show=True, output_name=None):
     """
     sns.set()
     plt.figure(figsize=(10, 5))
-    plt.hist(df['steering'], bins=100)
+    plt.hist(df[col], bins=100)
     plt.xlabel('Steering Angle')
     plt.ylabel('Frequency')
     output_name and plt.savefig(output_name)
