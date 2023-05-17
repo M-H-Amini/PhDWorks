@@ -16,7 +16,7 @@ import numpy as np
 import logging as log
 from mh_dave2_data import prepareDataset as prepareDatasetUdacity
 from mh_beamng_ds import prepareDataset as prepareDatasetBeamNG
-from git_dave2_model import loadModel
+from git_dave2_model import loadModel as loadModelGit
 from functools import partial
 
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -31,6 +31,14 @@ if gpus:
         log.error(e)
 else:
     log.info('No GPUs found')
+
+def loadModel(model='git'):
+    if model == 'udacity':
+        return load_model('mh_dave2_udacity')
+    elif model == 'git':
+        return loadModelGit('DAVE2-Keras-master/model.h5')
+    elif model == 'beamng':
+        return load_model('mh_dave2_beamng')
 
 def evaluate(train, val, test, model, verbose=True):
     res = {}
@@ -49,44 +57,58 @@ def evaluate(train, val, test, model, verbose=True):
     return res
  
 
-##  Evaluation on Udacity Dataset...
+##  Datasets...
 
-##  Dataset...
+##  Udacity Dataset...
 dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
 dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
 train_cols = ['center']
 # train_cols = ['center', 'left', 'right']
-transform = lambda x: x[70:136, 100:300, :]
-X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDatasetUdacity(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.7, test_size=0.1, val_size=0.1, transform=transform, show=False)
-log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
-log.info(f'X_valid shape: {X_val.shape}, y_valid shape: {y_val.shape}')
-log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
+transform_u = lambda x: x[70:136, 100:300, :]
+X_train_u, y_train_u, meta_train_u, X_val_u, y_val_u, meta_val_u, X_test_u, y_test_u, meta_test_u = prepareDatasetUdacity(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.7, test_size=0.1, val_size=0.1, transform=transform_u, show=False)
+X_udacity = np.concatenate((X_train_u, X_val_u, X_test_u), axis=0)
+y_udacity = np.concatenate((y_train_u, y_val_u, y_test_u), axis=0)
+log.info(f'X_udacity shape: {X_udacity.shape}, y_udacity shape: {y_udacity.shape}')
+log.info(f'X_train shape: {X_train_u.shape}, y_train shape: {y_train_u.shape}')
+log.info(f'X_valid shape: {X_val_u.shape}, y_valid shape: {y_val_u.shape}')
+log.info(f'X_test shape: {X_test_u.shape}, y_test shape: {y_test_u.shape}')
 
-
-log.info('Evaluating model on train, val and test sets...')
-eval = partial(evaluate, train=(X_train, y_train), val=(X_val, y_val), test=(X_test, y_test), verbose=False)
-models = {'Dave2Scratch': load_model('mh_dave2'), 'Dave2Git': loadModel('DAVE2-Keras-master/model.h5')}
-losses = {model_type: eval(model=model) for model_type, model in models.items()}
-df_eval = pd.DataFrame(losses, index=['train', 'val', 'test']).T
-df_eval.to_latex('eval_udacity.tex', float_format='%.3f')
-print('Evaluation on Udacity Dataset...')
-print(df_eval)
-
-##  Evaluation on BeamNG Dataset...
-transform = lambda x: x[130-66:130, 60:260, :]  ##  Crop the image
+##  BeamNG Dataset...
+transform_b = lambda x: x[130-66:130, 60:260, :]  ##  Crop the image
 json_folder = 'ds_beamng'
 test_size = 0.1
 val_size = 0.1
 step = 15
-X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDatasetBeamNG(json_folder, step=step, test_size=test_size, val_size=val_size, random_state=28, transform=transform, show=False)
-X = np.concatenate((X_train, X_val, X_test), axis=0)
-y = np.concatenate((y_train, y_val, y_test), axis=0)
-log.info(f'X shape: {X.shape}, y shape: {y.shape}')
-log.info('Evaluating model on BeamNG dataset...')
-eval = partial(evaluate, train=(X, y), val=None, test=None, verbose=False)
-models = {'Dave2Scratch': load_model('mh_dave2'), 'Dave2Git': loadModel('DAVE2-Keras-master/model.h5')}
-losses = {model_type: eval(model=model) for model_type, model in models.items()}
-df_eval = pd.DataFrame(losses, index=['train']).T
-df_eval.to_latex('eval_beamng.tex', float_format='%.3f')
-print('Evaluation on BeamNG Dataset...')
-print(df_eval)
+X_train_b, y_train_b, meta_train_b, X_val_b, y_val_b, meta_val_b, X_test_b, y_test_b, meta_test_b = prepareDatasetBeamNG(json_folder, step=step, test_size=test_size, val_size=val_size, random_state=28, transform=transform_b, show=False)
+X_beamng = np.concatenate((X_train_b, X_val_b, X_test_b), axis=0)
+y_beamng = np.concatenate((y_train_b, y_val_b, y_test_b), axis=0)
+log.info(f'X_beamng shape: {X_beamng.shape}, y_beamng shape: {y_beamng.shape}')
+log.info(f'X_train shape: {X_train_b.shape}, y_train shape: {y_train_b.shape}')
+log.info(f'X_valid shape: {X_val_b.shape}, y_valid shape: {y_val_b.shape}')
+log.info(f'X_test shape: {X_test_b.shape}, y_test shape: {y_test_b.shape}')
+
+log.info('Evaluating models...')
+
+models = {key: loadModel(key) for key in ['udacity', 'beamng', 'git']}
+ds = {
+        'udacity': {
+            'total': (X_udacity, y_udacity),
+            'test': (X_test_u, y_test_u),
+        },
+        'beamng': {
+            'total': (X_beamng, y_beamng),
+            'test': (X_test_b, y_test_b),
+        }
+    }
+df_eval = {key: [] for key in models.keys()}
+
+for model_name in models.keys():
+    model = models[model_name]
+    for ds_name in ds.keys():
+        if model_name == ds_name:
+            df_eval[model_name].append(evaluate(train=None, val=None, test=ds[ds_name]['test'], model=model, verbose=False)['test'])
+        else:
+            df_eval[model_name].append(evaluate(train=ds[ds_name]['total'], val=None, test=None, model=model, verbose=False)['train'])
+
+df_eval = pd.DataFrame(df_eval, index=['udacity', 'beamng']).T
+df_eval.to_latex('eval.tex', float_format='%.3f')
