@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import json
 import os
-from mh_dave2_data import plotHistogram, splitDataset
+from mh_dave2_data import plotHistogram, splitDataset, imageGenerator, visualizeGenerator
 
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -83,6 +83,8 @@ if __name__ == '__main__':
     test_size = 0.1
     val_size = 0.1
     step = 15
-    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(json_folder, step=step, test_size=test_size, val_size=val_size, random_state=28, transform=lambda x:x, show=True)
-    
+    transform = lambda x: x[130-66:130, 60:260, :]  ##  Crop the image
+    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(json_folder, step=step, test_size=test_size, val_size=val_size, random_state=28, transform=transform, show=True)
+    gen_train = imageGenerator(X_train, y_train, (0.4, 0.8), batch_size=16, shuffle=True)
+    visualizeGenerator(gen_train)
     
