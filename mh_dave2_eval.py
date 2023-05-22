@@ -33,11 +33,11 @@ else:
     log.info('No GPUs found')
 
 def loadModel(model='git'):
-    if model == 'udacity':
+    if 'udacity' in model.lower():
         return load_model('mh_dave2_udacity')
-    elif model == 'git':
+    elif 'git' in model.lower():
         return loadModelGit('DAVE2-Keras-master/model.h5')
-    elif model == 'beamng':
+    elif 'beamng' in model.lower():
         return load_model('mh_dave2_beamng')
 
 def evaluate(train, val, test, model, verbose=True):
@@ -89,7 +89,7 @@ log.info(f'X_test shape: {X_test_b.shape}, y_test shape: {y_test_b.shape}')
 
 log.info('Evaluating models...')
 
-models = {key: loadModel(key) for key in ['udacity', 'beamng', 'git']}
+models = {key: loadModel(key) for key in ['Dave2Udacity', 'Dave2BeamNG', 'Dave2Git']}
 ds = {
         'udacity': {
             'total': (X_udacity, y_udacity),
@@ -102,13 +102,13 @@ ds = {
     }
 df_eval = {key: [] for key in models.keys()}
 
-for model_name in models.keys():
+for i, model_name in enumerate(models.keys()):
     model = models[model_name]
-    for ds_name in ds.keys():
-        if model_name == ds_name:
+    for j, ds_name in enumerate(ds.keys()):
+        if i == j:
             df_eval[model_name].append(evaluate(train=None, val=None, test=ds[ds_name]['test'], model=model, verbose=False)['test'])
         else:
             df_eval[model_name].append(evaluate(train=ds[ds_name]['total'], val=None, test=None, model=model, verbose=False)['train'])
 
-df_eval = pd.DataFrame(df_eval, index=['udacity', 'beamng']).T
-df_eval.to_latex('eval.tex', float_format='%.3f')
+df_eval = pd.DataFrame(df_eval, index=['UdacityJungle', 'Beamng']).T
+df_eval.to_latex('eval_dave2_offline.tex', float_format='%.3f')
