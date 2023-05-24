@@ -9,3 +9,7 @@ mh_dave2_beamng/
 mh_dave2_udacity/
 *.gif
 *.h5
+CUT/
+DCLGAN/
+!mh_cvae_weights.h5
+ds_sim/
