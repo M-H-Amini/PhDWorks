@@ -54,9 +54,9 @@ def loadDataset(dataset='udacity'):
         X_test = np.array([x.numpy()/255. for x, y in ds_test])
         y_test = np.array([y.numpy() for x, y in ds_test])
         return X_train, y_train, None, None, X_test, y_test
-    elif dataset == 'fake':
-        folder = '/home/mohammadh/DCLGAN/results/beamng2udacity_SimDCL/test_latest/images/fake_A'
-        transform_b = lambda x: x[130-66:130, 60:260, :]  / 255.
+    elif dataset == 'fake_gan':
+        folder = 'ds_dclgan/images/fake_A'
+        transform_b = lambda x: x[130-66:130, 50:250, :]  / 255.
         X_train = []
         for i in tqdm(os.listdir(folder)):
             if i.endswith('.png'):
@@ -72,9 +72,12 @@ def loadDataset(dataset='udacity'):
 if __name__ == '__main__':
     # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('udacity')
     # X_train, y_train, _, _, X_test, y_test = loadDataset('cats_vs_dogs')
-    X_train, y_train, _, _, X_test, y_test = loadDataset('mnist')
+    # X_train, y_train, _, _, X_test, y_test = loadDataset('mnist')
     X_train, _, _, _, _, _ = loadDataset('fake')
     print('X_train.shape:', X_train.shape)
+    X_train, _, _, _, _, _ = loadDataset('udacity')
+    print('X_train.shape:', X_train.shape)
+
     # print('y_train.shape:', y_train.shape)
     # print('X_test.shape:', X_test.shape)
     # print('y_test.shape:', y_test.shape)

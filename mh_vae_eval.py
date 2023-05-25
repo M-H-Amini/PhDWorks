@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from mh_vae import MHVAE
-from mh_dave2_data import prepareDataset as prepareDatasetUdacity
 from mh_utils import buildQ, buildP
 import logging as log
 from mh_ds import loadDataset
@@ -11,7 +10,7 @@ from mh_ds import loadDataset
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 ##  Loading data...
-ds_names = ['udacity', 'beamng', 'fake']
+ds_names = ['udacity', 'beamng', 'fake_gan']
 ds = [loadDataset(ds_name) for ds_name in ds_names]
 ds = map(lambda x: np.concatenate((x[0], x[4]), axis=0), ds)
 ds = {ds_name: ds_ for ds_name, ds_ in zip(ds_names, ds)}
@@ -46,7 +45,7 @@ plt.figure(figsize=(10, 5))
 
 plt.legend()
 ##  Plotting histograms with x axis in log scale...
-[plt.hist(e, bins=50, label=name, density=True) for e, name in zip(error, ds_names)]
+[plt.hist(e, bins=50, label=name, density=True, lw=0) for e, name in zip(error, ds_names)]
 # plt.gca().set_xscale('log')
 plt.title('Reconstruction Error')
 plt.xlabel('MSE')

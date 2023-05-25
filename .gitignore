@@ -13,3 +13,4 @@ CUT/
 DCLGAN/
 !mh_cvae_weights.h5
 ds_sim/
+ds_dclgan/
