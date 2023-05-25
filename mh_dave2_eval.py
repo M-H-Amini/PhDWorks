@@ -14,8 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import logging as log
-from mh_dave2_data import prepareDataset as prepareDatasetUdacity
-from mh_beamng_ds import prepareDataset as prepareDatasetBeamNG
+from mh_ds import loadDataset
 from git_dave2_model import loadModel as loadModelGit
 from functools import partial
 
@@ -58,57 +57,25 @@ def evaluate(train, val, test, model, verbose=True):
  
 
 ##  Datasets...
-
-##  Udacity Dataset...
-dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
-dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
-train_cols = ['center']
-# train_cols = ['center', 'left', 'right']
-transform_u = lambda x: x[70:136, 100:300, :]
-X_train_u, y_train_u, meta_train_u, X_val_u, y_val_u, meta_val_u, X_test_u, y_test_u, meta_test_u = prepareDatasetUdacity(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.7, test_size=0.1, val_size=0.1, transform=transform_u, show=False)
-X_udacity = np.concatenate((X_train_u, X_val_u, X_test_u), axis=0)
-y_udacity = np.concatenate((y_train_u, y_val_u, y_test_u), axis=0)
-log.info(f'X_udacity shape: {X_udacity.shape}, y_udacity shape: {y_udacity.shape}')
-log.info(f'X_train shape: {X_train_u.shape}, y_train shape: {y_train_u.shape}')
-log.info(f'X_valid shape: {X_val_u.shape}, y_valid shape: {y_val_u.shape}')
-log.info(f'X_test shape: {X_test_u.shape}, y_test shape: {y_test_u.shape}')
-
-##  BeamNG Dataset...
-transform_b = lambda x: x[130-66:130, 60:260, :]  ##  Crop the image
-json_folder = 'ds_beamng'
-test_size = 0.1
-val_size = 0.1
-step = 15
-X_train_b, y_train_b, meta_train_b, X_val_b, y_val_b, meta_val_b, X_test_b, y_test_b, meta_test_b = prepareDatasetBeamNG(json_folder, step=step, test_size=test_size, val_size=val_size, random_state=28, transform=transform_b, show=False)
-X_beamng = np.concatenate((X_train_b, X_val_b, X_test_b), axis=0)
-y_beamng = np.concatenate((y_train_b, y_val_b, y_test_b), axis=0)
-log.info(f'X_beamng shape: {X_beamng.shape}, y_beamng shape: {y_beamng.shape}')
-log.info(f'X_train shape: {X_train_b.shape}, y_train shape: {y_train_b.shape}')
-log.info(f'X_valid shape: {X_val_b.shape}, y_valid shape: {y_val_b.shape}')
-log.info(f'X_test shape: {X_test_b.shape}, y_test shape: {y_test_b.shape}')
-
+ds_names = ['udacity', 'beamng', 'fake_gan']
+ds = [loadDataset(ds_name) for ds_name in ds_names]
+func_map = lambda x: {'total': (np.concatenate((x[0], x[4]), axis=0), np.concatenate((x[1], x[5]), axis=0)), 'test': (x[4], x[5])}
+ds = map(func_map, ds)
+ds = {ds_name: ds_ for ds_name, ds_ in zip(ds_names, ds)}
 log.info('Evaluating models...')
 
 models = {key: loadModel(key) for key in ['Dave2Udacity', 'Dave2BeamNG', 'Dave2Git']}
-ds = {
-        'udacity': {
-            'total': (X_udacity, y_udacity),
-            'test': (X_test_u, y_test_u),
-        },
-        'beamng': {
-            'total': (X_beamng, y_beamng),
-            'test': (X_test_b, y_test_b),
-        }
-    }
 df_eval = {key: [] for key in models.keys()}
 
 for i, model_name in enumerate(models.keys()):
     model = models[model_name]
     for j, ds_name in enumerate(ds.keys()):
-        if i == j:
+        if i == j and i < 2:  ##  i < 2 to test all of DCLGAN for Dave2Git
+            print(f'{model_name} on test part of {ds_name}')
             df_eval[model_name].append(evaluate(train=None, val=None, test=ds[ds_name]['test'], model=model, verbose=False)['test'])
         else:
+            print(f'{model_name} on total part of {ds_name}')
             df_eval[model_name].append(evaluate(train=ds[ds_name]['total'], val=None, test=None, model=model, verbose=False)['train'])
 
-df_eval = pd.DataFrame(df_eval, index=['UdacityJungle', 'Beamng']).T
+df_eval = pd.DataFrame(df_eval, index=['UdacityJungle', 'Beamng', 'DCLGAN']).T
 df_eval.to_latex('eval_dave2_offline.tex', float_format='%.3f')

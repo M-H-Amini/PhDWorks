@@ -56,27 +56,35 @@ def loadDataset(dataset='udacity'):
         return X_train, y_train, None, None, X_test, y_test
     elif dataset == 'fake_gan':
         folder = 'ds_dclgan/images/fake_A'
+        csv_file = 'ds_dclgan/labels.csv'
+        df = pd.read_csv(csv_file)
+        df['img'] = df['img'].apply(lambda x: os.path.basename(x))
         transform_b = lambda x: x[130-66:130, 50:250, :]  / 255.
-        X_train = []
+        X_train, y_train = [], []
         for i in tqdm(os.listdir(folder)):
             if i.endswith('.png'):
                 img = cv2.imread(os.path.join(folder, i))[..., ::-1]
                 img = transform_b(img)
                 X_train.append(img)
+                steer = df[df['img'] == i[:-4] + '.jpg']['steer'].values[0]
+                y_train.append(steer)
         X_train = np.array(X_train)
+        y_train = np.array(y_train)
         X_test = X_train[-100:]
+        y_test = y_train[-100:]
         X_train = X_train[:-100]
-        return X_train, None, None, None, X_test, None
+        y_train = y_train[:-100]
+        return X_train, y_train, None, None, X_test, y_test
 
     
 if __name__ == '__main__':
     # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('udacity')
     # X_train, y_train, _, _, X_test, y_test = loadDataset('cats_vs_dogs')
     # X_train, y_train, _, _, X_test, y_test = loadDataset('mnist')
-    X_train, _, _, _, _, _ = loadDataset('fake')
-    print('X_train.shape:', X_train.shape)
-    X_train, _, _, _, _, _ = loadDataset('udacity')
-    print('X_train.shape:', X_train.shape)
+    X_train, y_train, _, _, X_test, y_test = loadDataset('fake_gan')
+    print('X_train.shape:', X_train.shape, 'y_train.shape:', y_train.shape)
+    print('X_test.shape:', X_test.shape, 'y_test.shape:', y_test.shape)
+    print(y_test)
 
     # print('y_train.shape:', y_train.shape)
     # print('X_test.shape:', X_test.shape)
