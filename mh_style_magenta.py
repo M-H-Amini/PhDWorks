@@ -8,12 +8,17 @@ class MHStyleMagenta:
     def __init__(self) -> None:
         self.model = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2')
 
-    def preprocess(self, image):
-        return tf.image.resize(image[np.newaxis, ...] / 255., (256, 256))
+    def preprocess(self, image, normalize=True):
+        if len(image.shape) == 3:
+            image = image[np.newaxis, ...]
+        if normalize:
+            image = image.astype(np.float32) / 255.
+        image = tf.image.resize(image, (256, 256))
+        return image
     
-    def __call__(self, content_image, style_image):
-        content_image = self.preprocess(content_image)
-        style_image = self.preprocess(style_image)
+    def __call__(self, content_image, style_image, normalize=True):
+        content_image = self.preprocess(content_image, normalize=normalize)
+        style_image = self.preprocess(style_image, normalize=normalize)
         stylized_image = self.model(tf.constant(content_image), tf.constant(style_image))[0]
         stylized_image = tf.squeeze(stylized_image)
         return stylized_image
