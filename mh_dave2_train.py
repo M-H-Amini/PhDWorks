@@ -36,7 +36,7 @@ if gpus:
 else:
     log.info('No GPUs found')
 
-dataset = 'beamng'  ##  'udacity' or 'beamng'
+dataset = 'udacity'  ##  'udacity' or 'beamng'
 model_name = f'mh_dave2_{dataset}'
 epochs = 20
 batch_size = 128
@@ -62,8 +62,8 @@ else:
 log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
 log.info(f'X_valid shape: {X_val.shape}, y_valid shape: {y_val.shape}')
 log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
-gen_train = imageGenerator(X_train, y_train, batch_size=batch_size)
-gen_val = imageGenerator(X_val, y_val, batch_size=batch_size)
+gen_train = imageGenerator(X_train, y_train, (0.6, 1.), batch_size=batch_size)
+gen_val = imageGenerator(X_val, y_val, (0.6, 1.), batch_size=batch_size)
 
 ##  Model...
 image_shape = X_train.shape[1:]
