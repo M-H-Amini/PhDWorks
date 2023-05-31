@@ -9,9 +9,10 @@ import os
 
 def buildQ(latent_dim = 20, type_='vae'):
     ###  Q model (encoder)...
-    inp = tf.keras.layers.Input(shape=(66, 200, 3))
-    x = tf.keras.layers.Conv2D(filters=32, kernel_size=3, strides=(2, 2), padding='same', activation='relu')(inp)
-    x = tf.keras.layers.Conv2D(filters=64, kernel_size=3, strides=(2, 2), padding='same', activation='relu')(x)
+    inp = tf.keras.layers.Input(shape=(160, 320, 3))
+    x = tf.keras.layers.Conv2D(filters=32, kernel_size=3, strides=(2, 2), padding='same', activation='elu')(inp)
+    x = tf.keras.layers.Conv2D(filters=64, kernel_size=3, strides=(2, 2), padding='same', activation='elu')(x)
+    x = tf.keras.layers.Conv2D(filters=128, kernel_size=3, strides=(2, 2), padding='same', activation='elu')(x)
     x = tf.keras.layers.Flatten()(x)
     if type_ == 'vae':
         mean = tf.keras.layers.Dense(latent_dim, activation='tanh')(x)
@@ -26,10 +27,16 @@ def buildQ(latent_dim = 20, type_='vae'):
 def buildP(latent_dim = 20):
     ###  P model (decoder)...
     inp = tf.keras.layers.Input(shape=(latent_dim,))
-    x = tf.keras.layers.Dense(17 * 50 * 32, activation='relu')(inp)
-    x = tf.keras.layers.Reshape((17, 50, 32))(x)
+    x = tf.keras.layers.Dense(40 * 80 * 32, activation='relu')(inp)
+    x = tf.keras.layers.Reshape((40, 80, 32))(x)
     x = tf.keras.layers.Conv2DTranspose(filters=64, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu')(x)
     x = tf.keras.layers.Conv2DTranspose(filters=32, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu')(x)
-    x = tf.keras.layers.Conv2D(filters=3, kernel_size=(3, 1), padding='valid', activation='sigmoid')(x)
+    x = tf.keras.layers.Conv2D(filters=3, kernel_size=(3, 3), padding='same', activation='sigmoid')(x)
     model_p = tf.keras.models.Model(inputs=inp, outputs=x)
     return model_p
+
+if __name__ == '__main__':
+    model_q = buildQ()
+    model_q.summary()
+    model_p = buildP()
+    model_p.summary()
