@@ -14,3 +14,8 @@ DCLGAN/
 !mh_cvae_weights.h5
 ds_sim/
 ds_dclgan/
+ds_beamng_saevae/
+ds_*/
+*.zip
+style_model/
+*.pdf

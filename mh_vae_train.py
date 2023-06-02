@@ -22,7 +22,7 @@ model_p = buildP()
 model_p.summary()
 
 ###  MHVAE model...
-model = MHVAE(input_dim=(66, 200, 3), latent_dim=latent_dim, model_p=model_p, model_q=model_q, regularization_const=100000, train_visualize=True)
+model = MHVAE(input_dim=(160, 320, 3), latent_dim=latent_dim, model_p=model_p, model_q=model_q, regularization_const=100000, train_visualize=True)
 model.compile(optimizer='adam', run_eagerly=True)
 model.load_weights('mh_cvae_weights.h5')
 log.info('\033[92m' + 'Model loaded!' + '\033[0m')

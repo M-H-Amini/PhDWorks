@@ -57,14 +57,15 @@ def evaluate(train, val, test, model, verbose=True):
  
 
 ##  Datasets...
-ds_names = ['udacity', 'beamng', 'fake_gan']
+ds_names = ['udacity', 'beamng', 'saevae']  #  , 'dclgan', 'saevae', 'magenta']
+df_index = ['UdacityJungle', 'BeamNG', 'SAEVAE']
 ds = [loadDataset(ds_name) for ds_name in ds_names]
 func_map = lambda x: {'total': (np.concatenate((x[0], x[4]), axis=0), np.concatenate((x[1], x[5]), axis=0)), 'test': (x[4], x[5])}
 ds = map(func_map, ds)
 ds = {ds_name: ds_ for ds_name, ds_ in zip(ds_names, ds)}
 log.info('Evaluating models...')
 
-models = {key: loadModel(key) for key in ['Dave2Udacity', 'Dave2BeamNG', 'Dave2Git']}
+models = {key: loadModel(key) for key in ['Dave2Udacity', 'Dave2BeamNG']}
 df_eval = {key: [] for key in models.keys()}
 
 for i, model_name in enumerate(models.keys()):
@@ -77,5 +78,5 @@ for i, model_name in enumerate(models.keys()):
             print(f'{model_name} on total part of {ds_name}')
             df_eval[model_name].append(evaluate(train=ds[ds_name]['total'], val=None, test=None, model=model, verbose=False)['train'])
 
-df_eval = pd.DataFrame(df_eval, index=['UdacityJungle', 'Beamng', 'DCLGAN']).T
+df_eval = pd.DataFrame(df_eval, index=df_index).T
 df_eval.to_latex('eval_dave2_offline.tex', float_format='%.3f')

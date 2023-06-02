@@ -1,13 +1,10 @@
-from tensorflow.keras.datasets.mnist import load_data
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from mh_sae import MHAE
-from mh_dave2_data import prepareDataset as prepareDatasetUdacity
 from mh_utils import buildQ, buildP
 from mh_ds import loadDataset
 import logging as log
-import os
 
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -34,9 +31,9 @@ model_p = buildP()
 model_p.summary()
 
 ###  MHVAE model...
-model = MHAE(input_dim=(66, 200, 3), latent_dim=latent_dim, model_p=model_p, model_q=model_q, train_visualize=True)
+model = MHAE(input_dim=(160, 320, 3), latent_dim=latent_dim, model_p=model_p, model_q=model_q, train_visualize=True)
 model.compile(optimizer='adam', run_eagerly=True)
-model.load_weights(f'{model_name}_weights.h5') if os.path.exists(f'{model_name}_weights.h5') else None
+# model.load_weights(f'{model_name}_weights.h5') if os.path.exists(f'{model_name}_weights.h5') else None
 log.info('\033[92m' + 'Model loaded!' + '\033[0m')
 model.fit(X_train_u, epochs=10, batch_size=32)
 model.generateGIF(f'{model_name}.gif')

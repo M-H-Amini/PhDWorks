@@ -19,9 +19,9 @@ import os
 import logging as log
 from PIL import Image
 from mh_dave2_data import imageGenerator
-from mh_dave2_data import prepareDataset as prepareDatasetUdacity
-from mh_beamng_ds import prepareDataset as prepareDatasetBeamNG
 from mh_dave2_model import generateModel
+from mh_ds import loadDataset
+
 
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -36,42 +36,43 @@ if gpus:
 else:
     log.info('No GPUs found')
 
-dataset = 'udacity'  ##  'udacity' or 'beamng'
+dataset = 'beamng'  ##  'udacity' or 'beamng'
 model_name = f'mh_dave2_{dataset}'
-epochs = 20
-batch_size = 128
+epochs = 10
+batch_size = 32
 
 ##  Dataset...
-if dataset == 'udacity':
-    dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
-    dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
-    train_cols = ['center']
-    transform = lambda x: x[70:136, 100:300, :]
-    reduce_ratio = 0.7
-    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDatasetUdacity(dataset_folder, dataset_csv, train_cols, reduce_ratio=reduce_ratio, test_size=0.1, val_size=0.1, transform=transform, show=True)
-elif dataset == 'beamng':
-    json_folder = 'ds_beamng'
-    test_size = 0.1
-    val_size = 0.1
-    step = 15
-    transform = lambda x: x[130-66:130, 60:260, :]  ##  Crop the image
-    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDatasetBeamNG(json_folder, step=step, test_size=test_size, val_size=val_size, random_state=28, transform=transform, show=False)
-else:
-    raise ValueError('Dataset not found')
+X_train, y_train, X_val, y_val, X_test, y_test = loadDataset(dataset)
 
 log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
 log.info(f'X_valid shape: {X_val.shape}, y_valid shape: {y_val.shape}')
 log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
-gen_train = imageGenerator(X_train, y_train, (0.6, 1.), batch_size=batch_size)
-gen_val = imageGenerator(X_val, y_val, (0.6, 1.), batch_size=batch_size)
+datagen = tf.keras.preprocessing.image.ImageDataGenerator()
+
+datagen_train = datagen.flow(X_train, y_train, batch_size=32, shuffle=True, seed=42, ignore_class_split=True)
+datagen_val = datagen.flow(X_val, y_val, batch_size=32, shuffle=True, seed=42, ignore_class_split=True)
+datagen_test = datagen.flow(X_test, y_test, batch_size=32, shuffle=True, seed=42, ignore_class_split=True)
 
 ##  Model...
 image_shape = X_train.shape[1:]
 model = generateModel(image_shape)
-model.compile(optimizer=Adam(lr=1e-4), loss='mae')
+model.compile(optimizer='adam', loss='mae')
 ckpt = ModelCheckpoint(model_name, monitor='val_loss', verbose=1, save_best_only=True, mode='min', save_weights_only=False)
+history = model.fit(datagen_train, epochs=epochs, validation_data=datagen_val, callbacks=[ckpt])
 ##  Training...
-history = model.fit(gen_train, epochs=epochs, steps_per_epoch=len(X_train)//batch_size, validation_data=gen_val, validation_steps=len(X_val)//batch_size, callbacks=[ckpt])
+
+
+model = tf.keras.models.load_model(model_name)
+log.info('\033[92m' + 'Model loaded!' + '\033[0m')
+
+##  Evaluation...
+log.info('\033[92m' + 'Evaluating...' + '\033[0m')
+loss_train = model.evaluate(X_train, y_train, batch_size=batch_size)
+log.info(f'Train Loss: {loss_train}')
+loss_val = model.evaluate(X_val, y_val, batch_size=batch_size)
+log.info(f'Validation Loss: {loss_val}')
+loss_test = model.evaluate(X_test, y_test, batch_size=batch_size)
+log.info(f'Test Loss: {loss_test}')
 
 ##  Plotting training history...
 plt.figure(figsize=(10, 5))
@@ -81,6 +82,7 @@ plt.legend()
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.xticks(range(epochs))
+plt.ylim([0, 1])
 plt.title('Training History')
 plt.savefig(f'{model_name}.pdf')
 plt.show()
