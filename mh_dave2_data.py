@@ -16,7 +16,9 @@ import logging as log
 import seaborn as sns
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 import os
+import cv2
 
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -83,7 +85,7 @@ def balanceDataset(df, col='steering', reduce_ratio=0.9, show=True):
     plotHistogram(df, show=show, output_name='dataset_hist_balanced.pdf')
     return df
 
-def splitDataset(df, train_cols, test_size=0.2, val_size=0.2, random_state=28):
+def splitDataset(df, train_cols, test_size=0.2, val_size=0.2, random_state=42):
     """Splits a dataframe into train, validation and test sets.
 
     Args:
@@ -123,27 +125,53 @@ def splitDataset(df, train_cols, test_size=0.2, val_size=0.2, random_state=28):
     meta_test = [mm for m in meta_test for mm in m]  ##  (N,)
     return X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test
 
-def prepareDataset(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.9, test_size=0.2, val_size=0.2, random_state=28, transform=lambda x:x, show=True):
-    """Prepares a dataset for training.
+def saveDataset(output_folder=None):
+    target_folder = 'UdacityDS/self_driving_car_dataset_jungle/'
+    img_folder = os.path.join(target_folder, 'IMG')
+    csv_file = os.path.join(target_folder, 'driving_log.csv')
+    df = pd.read_csv(csv_file, names=['center', 'left', 'right', 'steering', 'throttle', 'brake', 'speed'])
+    df['center'] = df['center'].apply(lambda x: os.path.join(img_folder, x.split("\\")[-1]))
+    df['left'] = df['left'].apply(lambda x: os.path.join(img_folder, x.split("\\")[-1]))
+    df['right'] = df['right'].apply(lambda x: os.path.join(img_folder, x.split("\\")[-1]))
+    non_zero = df[df['steering'] != 0]
+    zero_df = df[df['steering'] == 0].sample(frac=0.05)
+    df_train = pd.concat([non_zero, zero_df])
+    df_train = df_train[(df_train['steering'] < 0.99) & (df_train['steering'] > -0.99)]
+    df_train = df_train[['center', 'steering']]
+    df_train.columns = ['img', 'steering']
+    df_flip = df_train.copy()
+    df_flip['steering'] = -df_flip['steering']
+    if output_folder:
+        os.makedirs(output_folder, exist_ok=True)
+        os.makedirs(os.path.join(output_folder, 'images'), exist_ok=True)
+        for i in tqdm(range(len(df_train))):
+            img = Image.open(df_train['img'].iloc[i])
+            img.save(os.path.join(output_folder, 'images', os.path.basename(df_train['img'].iloc[i])))
+            df_train['img'].iloc[i] = os.path.basename(df_train['img'].iloc[i])
+        for i in tqdm(range(len(df_flip))):
+            img = Image.open(df_flip['img'].iloc[i])
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            img.save(os.path.join(output_folder, 'images', os.path.basename(df_flip['img'].iloc[i])[:-4] + '_flip.png'))
+            df_flip['img'].iloc[i] = os.path.basename(df_flip['img'].iloc[i])[:-4] + '_flip.png'
+        df_train = pd.concat([df_train, df_flip])
+        df_train.to_csv(os.path.join(output_folder, 'ds_udacity.csv'), index=False)
 
-    Args:
-        dataset_folder (str): Path to dataset folder.
-        dataset_csv (str): Path to csv file.
-        train_cols (list): List of columns to be used as features.
-        reduce_ratio (float, optional): Ratio of rows with 0 steering angle to be reduced. Defaults to 0.9.
-        test_size (float, optional): Ratio of test set size to the whole dataset. Defaults to 0.2.
-        val_size (float, optional): Ratio of validation set size to the train set. Defaults to 0.2.
-        random_state (int, optional): Random state. Defaults to 28.
-        transform (function, optional): Transform function to be applied to images. Defaults to lambda x:x.
-        show (bool, optional): Whether to show the plot. Defaults to True.
-
-    Returns:
-        X_train (numpy.ndarray): Train set features.
-    """
-    df = readDataset(dataset_csv, dataset_folder, train_cols, transform=transform)
-    df = balanceDataset(df, reduce_ratio=reduce_ratio, show=show)
-    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = splitDataset(df, train_cols, test_size=test_size, val_size=val_size, random_state=random_state)
-    return X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test
+def prepareDataset(dataset_folder, test_size=0.2, val_size=0.2, random_state=28, x_transform=lambda x:x, y_transform=lambda y:y, show=True):
+    df = pd.read_csv(os.path.join(dataset_folder, 'ds_udacity.csv'))
+    log.info(f'Reading {len(df)} images...')
+    X = np.array(list(map(lambda x: x_transform(cv2.imread(os.path.join(dataset_folder, 'images', x))), df['img'].values)))[...,::-1]
+    y = df['steering'].values
+    y = np.array(list(map(lambda y: y_transform(y), y)))
+    df['steering'] = y
+    log.info(f'X shape: {X.shape}, y shape: {y.shape}')
+    show and plotHistogram(df, 'steering', output_name='ds_udacity_hist.pdf', show=show)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_size / (1 - test_size), random_state=random_state)
+    log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
+    log.info(f'X_val shape: {X_val.shape}, y_val shape: {y_val.shape}')
+    log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
+    df.to_csv(os.path.join(dataset_folder, 'ds_beamng_normalized.csv'), index=False)
+    return X_train, y_train, X_val, y_val, X_test, y_test
 
 def validate(X, y, meta, dataset_folder, dataset_csv, n=5, transform=lambda x:x, show=True):
     """Validates a dataset.
@@ -191,9 +219,12 @@ def imageGenerator(X, y, brightness_range=(0.4, 0.6), batch_size=32, shuffle=Tru
     Returns:
         generator: Generator of images.
     """
-    datagen = ImageDataGenerator(
-        brightness_range=brightness_range,
-    )
+    if brightness_range is None:
+        datagen = ImageDataGenerator()
+    else:
+        datagen = ImageDataGenerator(
+            brightness_range=brightness_range,
+        )
     datagen.fit(X)
     return datagen.flow(X, y, batch_size=batch_size, shuffle=shuffle)
     
@@ -215,19 +246,24 @@ def visualizeGenerator(gen):
     plt.show()
     
 
-
 if __name__  == '__main__':
     ##  Dataset...
-    dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
-    dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
-    transform = lambda x: x[60:160, :, :]  ##  Crop the image
-    # transform = lambda x: x  ##  No transform
-    train_cols = ['center']  ##  Or it can be ['center', 'left', 'right']
-    # train_cols = ['center', 'left', 'right']
-    X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.8, transform=transform, show=True)
+    # dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
+    # dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
+    # transform = lambda x: x[60:160, :, :]  ##  Crop the image
+    # # transform = lambda x: x  ##  No transform
+    # train_cols = ['center']  ##  Or it can be ['center', 'left', 'right']
+    # # train_cols = ['center', 'left', 'right']
+    # X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDataset(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.9, transform=transform, show=True)
+    # log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
+    # log.info(f'X_val shape: {X_val.shape}, y_val shape: {y_val.shape}')
+    # log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
+    # validate(X_train, y_train, meta_train, dataset_folder, dataset_csv, n=5, transform=transform, show=False)
+    
+    # saveDataset(output_folder='ds_udacity')  ##  To save the dataset...
+    X_train, y_train, X_val, y_val, X_test, y_test = prepareDataset('ds_udacity')
     log.info(f'X_train shape: {X_train.shape}, y_train shape: {y_train.shape}')
     log.info(f'X_val shape: {X_val.shape}, y_val shape: {y_val.shape}')
     log.info(f'X_test shape: {X_test.shape}, y_test shape: {y_test.shape}')
-    validate(X_train, y_train, meta_train, dataset_folder, dataset_csv, n=5, transform=transform, show=False)
-    gen_train = imageGenerator(X_train, y_train, (0.4, 0.6), batch_size=16, shuffle=True)
+    gen_train = imageGenerator(X_train, y_train, (0.6, 1.), batch_size=16, shuffle=True)
     visualizeGenerator(gen_train)

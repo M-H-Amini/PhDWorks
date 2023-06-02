@@ -15,22 +15,13 @@ import os
 
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
  
-def loadDataset(dataset='udacity'):
+def loadDataset(dataset='udacity', resize=True):
     if dataset == 'udacity':
-        dataset_folder = 'UdacityDS/self_driving_car_dataset_jungle/IMG'
-        dataset_csv = 'UdacityDS/self_driving_car_dataset_jungle/driving_log.csv'
-        train_cols = ['center']
-        # train_cols = ['center', 'left', 'right']
-        transform_u = lambda x: x[70:136, 100:300, :] / 255.
-        X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDatasetUdacity(dataset_folder, dataset_csv, train_cols, reduce_ratio=0.7, test_size=0.1, val_size=0.1, transform=transform_u, show=False)
+        X_train, y_train, X_val, y_val, X_test, y_test = prepareDatasetUdacity()
         return X_train, y_train, X_val, y_val, X_test, y_test
     elif dataset == 'beamng':
-        transform_b = lambda x: x[130-66:130, 60:260, :]  / 255.
-        json_folder = 'ds_beamng'
-        test_size = 0.1
-        val_size = 0.1
-        step = 15
-        X_train, y_train, meta_train, X_val, y_val, meta_val, X_test, y_test, meta_test = prepareDatasetBeamNG(json_folder, step=step, test_size=test_size, val_size=val_size, random_state=28, transform=transform_b, show=False)
+        x_transform, y_transform = lambda x: x / 255., lambda y: y/0.11
+        X_train, y_train, X_val, y_val, X_test, y_test = prepareDatasetBeamNG('ds_beamng', test_size=0.1, val_size=0.1, random_state=28, x_transform=x_transform, y_transform=y_transform, show=False)
         return X_train, y_train, X_val, y_val, X_test, y_test
     elif dataset == 'mnist':
         (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -74,6 +65,11 @@ def loadDataset(dataset='udacity'):
         y_test = y_train[-100:]
         X_train = X_train[:-100]
         y_train = y_train[:-100]
+        # Normalizing the y arrays between -1 and +1...
+        y_min = min(y_train.min(), y_test.min())
+        y_max = max(y_train.max(), y_test.max())
+        y_train = (y_train - y_min) / (y_max - y_min) * 2 - 1
+        y_test = (y_test - y_min) / (y_max - y_min) * 2 - 1
         return X_train, y_train, None, None, X_test, y_test
     elif dataset == 'saevae':
         folder = 'ds_beamng_saevae'
@@ -95,19 +91,73 @@ def loadDataset(dataset='udacity'):
         y_test = y_train[-100:]
         X_train = X_train[:-100]
         y_train = y_train[:-100]
+        # Normalizing the y arrays between -1 and +1...
+        y_min = min(y_train.min(), y_test.min())
+        y_max = max(y_train.max(), y_test.max())
+        y_train = (y_train - y_min) / (y_max - y_min) * 2 - 1
+        y_test = (y_test - y_min) / (y_max - y_min) * 2 - 1
+        return X_train, y_train, None, None, X_test, y_test
+    elif dataset == 'magenta':
+        folder = 'ds_beamng_style_magenta'
+        csv_file = 'ds_beamng_style_magenta/labels.csv'
+        df = pd.read_csv(csv_file)
+        df['img'] = df['img'].apply(lambda x: os.path.basename(x))
+        transform_b = lambda x: x / 255.
+        X_train, y_train = [], []
+        for i in tqdm(os.listdir(folder)):
+            if i.endswith('.jpg'):
+                img = cv2.imread(os.path.join(folder, i))[..., ::-1]
+                img = transform_b(img)
+                X_train.append(img)
+                steer = df[df['img'] == i[:-4] + '.jpg']['steer'].values[0]
+                y_train.append(steer)
+        X_train = np.array(X_train)
+        y_train = np.array(y_train)
+        X_test = X_train[-100:]
+        y_test = y_train[-100:]
+        X_train = X_train[:-100]
+        y_train = y_train[:-100]
+        # Normalizing the y arrays between -1 and +1...
+        y_min = min(y_train.min(), y_test.min())
+        y_max = max(y_train.max(), y_test.max())
+        y_train = (y_train - y_min) / (y_max - y_min) * 2 - 1
+        y_test = (y_test - y_min) / (y_max - y_min) * 2 - 1
         return X_train, y_train, None, None, X_test, y_test
 
+def plotHistogram(y, bins=100, title=None, output=None, show=True):
+    plt.figure(figsize=(10, 5))
+    plt.hist(y, bins=bins)
+    title and plt.title(title)
+    output and plt.savefig(output)
+    show and plt.show()
 
+def visualize(X1, X2, output=None, show=True):
+    h, w = X1.shape[1:3]
+    img = np.zeros((h*4, w*8, 3))
+    for i in range(4):
+        for j in range(4):
+            img[i*h:(i+1)*h, 2*j*w:(2*j+1)*w, :] = X1[i*4+j]
+            img[i*h:(i+1)*h, (2*j+1)*w:(2*j+2)*w, :] = X2[i*4+j]
+    plt.figure(figsize=(20, 10))
+    plt.imshow(img)
+    show and plt.show()
+    output and plt.imsave(output, img)
+    
     
 if __name__ == '__main__':
     # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('udacity')
+    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('beamng')
+    # X = np.concatenate([X_train, X_val, X_test])
+    y = np.concatenate([y_train, y_val, y_test])
+    print(X_train.min(), X_train.max())
+    # print('X_train.shape:', X_train.shape, 'y_train.shape:', y_train.shape)
+
     # X_train, y_train, _, _, X_test, y_test = loadDataset('cats_vs_dogs')
     # X_train, y_train, _, _, X_test, y_test = loadDataset('mnist')
     # X_train, y_train, _, _, X_test, y_test = loadDataset('fake_gan')
-    X_train, y_train, _, _, X_test, y_test = loadDataset('saevae')
-    print('X_train.shape:', X_train.shape, 'y_train.shape:', y_train.shape)
-    print('X_test.shape:', X_test.shape, 'y_test.shape:', y_test.shape)
-    print(y_test)
+    # X_train, y_train, _, _, X_test, y_test = loadDataset('saevae')
+    
+    plotHistogram(y, bins=100, output='hist_beamng_scaled.pdf', show=True)
 
     # print('y_train.shape:', y_train.shape)
     # print('X_test.shape:', X_test.shape)
