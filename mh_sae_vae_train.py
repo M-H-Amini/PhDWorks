@@ -41,7 +41,7 @@ if gpus:
 ##  Loading data...
 X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('beamng')
 
-train = not True
+train = True
 
 ##  VAE model...
 latent_dim = 20
@@ -64,11 +64,11 @@ model_p_sae = buildP()
 model_p_sae.summary()
 model_sae = MHAE(input_dim=(160, 320, 3), latent_dim=latent_dim, model_p=model_p_sae, model_q=model_q_sae)
 model_sae.compile(optimizer='adam')
-# model_sae.load_weights(f'{model_name}_weights.h5') if os.path.exists(f'{model_name}_weights.h5') else None
+model_sae.load_weights(f'{model_name}_weights.h5') if os.path.exists(f'{model_name}_weights.h5') else None
 log.info('\033[92m' + 'SAE model loaded!' + '\033[0m')
 ##  Training...
 N = len(X_train)
-batch_size = 8
+batch_size = 32
 losses = []
 
 def trainEpoch(indices):
@@ -80,11 +80,12 @@ def trainEpoch(indices):
             X_hat_hat = model_vae(X_hat)
             loss_sae = tf.reduce_mean(tf.square(X - X_hat))
             loss_vae = tf.reduce_mean(tf.square(X_hat - X_hat_hat))
-            loss = 2 * loss_sae + 1 * loss_vae
+            loss = 2 * loss_sae + loss_vae
         grads = g.gradient(loss, model_sae.trainable_variables)
         model_sae.optimizer.apply_gradients(zip(grads, model_sae.trainable_variables))
         losses.append(loss.numpy())
         log.info(f'Batch {i+1}/{N//batch_size} - Loss: {loss.numpy()}')
+    return loss.numpy()
 
 def visualize(X, X_hat):
     print('Visualizing...')
@@ -95,7 +96,6 @@ def visualize(X, X_hat):
         for j in range(4):
             img[i*h:(i+1)*h, 2*j*w:(2*j+1)*w, :] = X[indices[i*4+j]]
             img[i*h:(i+1)*h, (2*j+1)*w:(2*j+2)*w, :] = X_hat[indices[i*4+j]]
-    plt.figure(figsize=(16, 8))
     plt.imshow(img)
     plt.show(block=False)
     plt.pause(0.1)
@@ -110,24 +110,28 @@ ds = [loadDataset(ds_name) for ds_name in ds_names]
 ds = map(lambda x: np.concatenate((x[0], x[4]), axis=0), ds)
 ds = {ds_name: ds_ for ds_name, ds_ in zip(ds_names, ds)}
 ds['transformed_beamng'] = ds['beamng']
+best_loss = 1000
 
 if train:
+    plt.figure(figsize=(16, 8))
     frames = []
-    print('Before first plotEvalHistogram...')
     plotEvalHistogram(model_vae, ds, output_name=f'mh_csae_cvae_eval_{0}.pdf', show=False)
-    print('After first plotEvalHistogram...')
     visualize(X_train, model_sae.predict(X_train))
 
-    for epoch in range(10):
+    for epoch in range(5):
         log.info(f'Epoch {epoch+1}/{10}')
         indices = np.random.permutation(N)
-        trainEpoch(indices)
+        loss = trainEpoch(indices)
         ##  Plotting...
         X_hat = model_sae.predict(X_train)
         ds['transformed_beamng'] = X_hat
         plotEvalHistogram(model_vae, ds, output_name=f'mh_csae_cvae_eval_{epoch}.pdf', show=False)
         visualize(X_train, X_hat)
-        model_sae.save_weights(f'{model_name}_weights.h5')
+        if loss < best_loss:
+            best_loss = loss
+            print('New best loss!', best_loss)
+            model_sae.save_weights(f'{model_name}_weights.h5')
+
 
 
     plt.figure()
@@ -136,8 +140,7 @@ if train:
     plt.xlabel('Batch')
     plt.ylabel('Loss')
     plt.show()
-    # model_sae.generateGIF(f'{model_name}.gif')
-    model_sae.save_weights(f'{model_name}_weights.h5')
+    
 
     ##  Generate GIF...
     import imageio

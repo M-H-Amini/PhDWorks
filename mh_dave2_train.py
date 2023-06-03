@@ -30,16 +30,18 @@ gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
     log.info(f'GPUs: {gpus}')
     try:
-        tf.config.experimental.set_virtual_device_configuration(gpus[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=3072)])
+        tf.config.experimental.set_visible_devices(gpus[2], 'GPU')
     except RuntimeError as e:
         log.error(e)
 else:
     log.info('No GPUs found')
 
+input('Press Enter to continue...')
+
 dataset = 'beamng'  ##  'udacity' or 'beamng'
 model_name = f'mh_dave2_{dataset}'
-epochs = 10
-batch_size = 32
+epochs = 5
+batch_size = 128
 
 ##  Dataset...
 X_train, y_train, X_val, y_val, X_test, y_test = loadDataset(dataset)
