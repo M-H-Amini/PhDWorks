@@ -17,7 +17,8 @@ log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)
  
 def loadDataset(dataset='udacity', resize=True):
     if dataset == 'udacity':
-        X_train, y_train, X_val, y_val, X_test, y_test = prepareDatasetUdacity('ds_udacity', show=False)
+        x_transform = lambda x: x / 255.
+        X_train, y_train, X_val, y_val, X_test, y_test = prepareDatasetUdacity('ds_udacity' , test_size=0.1, val_size=0.1, random_state=28, x_transform=x_transform, show=False)
         return X_train, y_train, X_val, y_val, X_test, y_test
     elif dataset == 'beamng':
         x_transform, y_transform = lambda x: x / 255., lambda y: y/0.11
