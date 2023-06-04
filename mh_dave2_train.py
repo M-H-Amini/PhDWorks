@@ -36,12 +36,10 @@ if gpus:
 else:
     log.info('No GPUs found')
 
-input('Press Enter to continue...')
-
-dataset = 'beamng'  ##  'udacity' or 'beamng'
+dataset = 'udacity'  ##  'udacity' or 'beamng'
 model_name = f'mh_dave2_{dataset}'
-epochs = 5
-batch_size = 128
+epochs = 100
+batch_size = 64
 
 ##  Dataset...
 X_train, y_train, X_val, y_val, X_test, y_test = loadDataset(dataset)

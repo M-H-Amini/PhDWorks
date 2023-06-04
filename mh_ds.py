@@ -147,9 +147,10 @@ def visualize(X1, X2, output=None, show=True):
     
 if __name__ == '__main__':
     # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('udacity')
-    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('beamng')
+    # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('beamng')
+    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('saevae')
     # X = np.concatenate([X_train, X_val, X_test])
-    y = np.concatenate([y_train, y_val, y_test])
+    y = np.concatenate([y_train, y_test])
     print(X_train.min(), X_train.max())
     # print('X_train.shape:', X_train.shape, 'y_train.shape:', y_train.shape)
 
