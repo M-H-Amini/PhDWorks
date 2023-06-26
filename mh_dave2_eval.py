@@ -17,6 +17,7 @@ import logging as log
 from mh_ds import loadDataset
 from git_dave2_model import loadModel as loadModelGit
 from functools import partial
+import os
 
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -32,12 +33,10 @@ else:
     log.info('No GPUs found')
 
 def loadModel(model='git'):
-    if 'udacity' in model.lower():
-        return load_model('mh_dave2_udacity')
-    elif 'git' in model.lower():
+    if 'git' in model.lower():
         return loadModelGit('DAVE2-Keras-master/model.h5')
-    elif 'beamng' in model.lower():
-        return load_model('mh_dave2_beamng')
+    else:
+        return load_model(model)
 
 def evaluate(train, val, test, model, verbose=True):
     res = {}
@@ -65,18 +64,31 @@ ds = map(func_map, ds)
 ds = {ds_name: ds_ for ds_name, ds_ in zip(ds_names, ds)}
 log.info('Evaluating models...')
 
-models = {key: loadModel(key) for key in ['Dave2Udacity', 'Dave2BeamNG']}
+model_folders = []
+model_names = []
+##  Loading dave2 models...
+for model in os.listdir('models'):
+    os.path.isdir((model_folder := os.path.join('models', model))) and (model_folders.append(model_folder) or model_names.append(model_folder[10:]))
+
+model_folders.extend(['mh_cnn_udacity', 'mh_chauffeur_udacity', 'mh_epoch_udacity', 'mh_autumn_udacity', 'mh_dave2_beamng'])
+model_names.extend(['CNNUdacity', 'ChauffeurUdacity', 'EpochUdacity', 'AutumnUdacity', 'Dave2BeamNG'])
+
+
+models = {key: loadModel(key) for key in model_folders}
 df_eval = {key: [] for key in models.keys()}
 
-for i, model_name in enumerate(models.keys()):
-    model = models[model_name]
+for i, model_key in enumerate(models.keys()):
+    model = models[model_key]
+    model_name = model_names[i]
     for j, ds_name in enumerate(ds.keys()):
-        if i == j and i < 2:  ##  i < 2 to test all of DCLGAN for Dave2Git
+        if (i == j and i < 2) or (i==2 and j==0) or (i==3 and j==0) or (i==4 and j==0):  ##  i < 2 to test all of DCLGAN for Dave2Git
             print(f'{model_name} on test part of {ds_name}')
-            df_eval[model_name].append(evaluate(train=None, val=None, test=ds[ds_name]['test'], model=model, verbose=False)['test'])
+            df_eval[model_key].append(evaluate(train=None, val=None, test=ds[ds_name]['test'], model=model, verbose=False)['test'])
         else:
             print(f'{model_name} on total part of {ds_name}')
-            df_eval[model_name].append(evaluate(train=ds[ds_name]['total'], val=None, test=None, model=model, verbose=False)['train'])
+            df_eval[model_key].append(evaluate(train=ds[ds_name]['total'], val=None, test=None, model=model, verbose=False)['train'])
 
 df_eval = pd.DataFrame(df_eval, index=df_index).T
+df_eval.rename(index={model_folders[i]:model_names[i] for i in range(len(model_folders))}, inplace=True)
+
 df_eval.to_latex('eval_dave2_offline.tex', float_format='%.3f')

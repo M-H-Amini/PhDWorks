@@ -39,8 +39,9 @@ else:
 dataset = 'udacity'  ##  'udacity' or 'beamng'
 dave2 = True
 model_name = f'mh_{"dave2" if dave2 else "cnn"}_{dataset}'
-epochs = 10
+epochs = 50
 batch_size = 64
+init = 20  ##  The index to start saving the model from...
 
 ##  Dataset...
 X_train, y_train, X_val, y_val, X_test, y_test = loadDataset(dataset)
@@ -87,5 +88,5 @@ def trainModel(datagen_train, datagen_val, X_train, y_train, X_val, y_val, X_tes
     plt.savefig(f'{model_folder}.pdf')
     plt.show()
 
-for i in range(3):
-    trainModel(datagen_train, datagen_val, X_train, y_train, X_val, y_val, X_test, y_test, f'{model_name}_{i}')
+for i in range(80):
+    trainModel(datagen_train, datagen_val, X_train, y_train, X_val, y_val, X_test, y_test, f'{model_name}_{init + i}')
