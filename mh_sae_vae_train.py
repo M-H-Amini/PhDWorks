@@ -64,7 +64,7 @@ model_p_sae = buildP()
 model_p_sae.summary()
 model_sae = MHAE(input_dim=(160, 320, 3), latent_dim=latent_dim, model_p=model_p_sae, model_q=model_q_sae)
 model_sae.compile(optimizer='adam')
-model_sae.load_weights(f'{model_name}_weights.h5') if os.path.exists(f'{model_name}_weights.h5') else None
+model_sae.load_weights(f'mh_sae_beamng_weights.h5')
 log.info('\033[92m' + 'SAE model loaded!' + '\033[0m')
 ##  Training...
 N = len(X_train)
@@ -80,7 +80,7 @@ def trainEpoch(indices):
             X_hat_hat = model_vae(X_hat)
             loss_sae = tf.reduce_mean(tf.square(X - X_hat))
             loss_vae = tf.reduce_mean(tf.square(X_hat - X_hat_hat))
-            loss = 2 * loss_sae + loss_vae
+            loss = loss_sae + 1. * loss_vae
         grads = g.gradient(loss, model_sae.trainable_variables)
         model_sae.optimizer.apply_gradients(zip(grads, model_sae.trainable_variables))
         losses.append(loss.numpy())

@@ -38,9 +38,10 @@ if gpus:
 else:
     log.info('No GPUs found')
 
+
 dataset = 'udacity'  ##  'udacity' or 'beamng'
 model_name = f'mh_chauffeur_{dataset}'
-epochs = 10
+epochs = 50
 batch_size = 64
 
 ##  Dataset...
@@ -58,7 +59,6 @@ datagen_test = datagen.flow(X_test, y_test, batch_size=32, shuffle=True, seed=42
 ##  Model...
 image_shape = X_train.shape[1:]
 model = generateModel(image_shape)
-# model.compile(loss='mse', optimizer=SGD(lr=0.001), metrics=[RootMeanSquaredError()])
 model.compile(optimizer='adam', loss='mae')
 ckpt = ModelCheckpoint(model_name, monitor='val_loss', verbose=1, save_best_only=True, mode='min', save_weights_only=False)
 history = model.fit(datagen_train, epochs=epochs, validation_data=datagen_val, callbacks=[ckpt])

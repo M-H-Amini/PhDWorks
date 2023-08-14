@@ -44,8 +44,9 @@ def generateModel(input_shape, W_l2=0.0001):
             Flatten(),
             Dropout(0.5),
             Dense(1,
-                kernel_initializer='he_normal',
-                kernel_regularizer=l2(W_l2))
+                # kernel_initializer='he_normal',
+                # kernel_regularizer=l2(W_l2)
+                )
         ])
     return model
 

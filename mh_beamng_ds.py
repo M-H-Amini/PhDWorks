@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import json
 import os
+import shutil
 import cv2
 from mh_dave2_data import plotHistogram, splitDataset, imageGenerator, visualizeGenerator
 from sklearn.model_selection import train_test_split
@@ -12,6 +13,25 @@ from sklearn.model_selection import train_test_split
 log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def json2CSV(json_folder, step=5):
+    """
+    Reads the json files in the given folder and creates a pandas DataFrame containing the dataset.
+    The resulting DataFrame has the following columns:
+    - img: the image file name
+    - steering_input: the steering angle input value
+    - throttle_input: the throttle input value
+    - brake_input: the brake input value
+    - is_oob: a boolean indicating whether the vehicle is out of bounds
+    The function drops the 'is_oob' and 'img' columns from the DataFrame, converts the other columns to float32,
+    and drops the rows where the absolute value of the steering angle input is greater than 0.11.
+    Finally, the function saves the resulting DataFrame to a CSV file in the same folder as the input json files.
+    
+    Args:
+    - json_folder (str): the path to the folder containing the input json files
+    - step (int): the step to use when reading the json files (default: 5)
+    
+    Returns:
+    - df (pandas.DataFrame): the resulting DataFrame containing the dataset
+    """
     jsons = [f for f in os.listdir(json_folder) if f.endswith('.json')]
     log.debug(f'Found {len(jsons)} json files in {json_folder}')
     cols = list(json.load(open(os.path.join(json_folder, jsons[0]))).keys())
@@ -36,8 +56,8 @@ def json2CSV(json_folder, step=5):
     log.info(f'The resulting csv file saved to {output_csv}!')
     return df
 
-def readDataset(json_folder, step=15, transform=lambda x:x, output_folder=None):
-    """Reads the dataset from json files. It also balances the dataset by flipping the images and steering angles.
+def readDataset(json_folder, step=15, transform=lambda x:x, output_folder=None, reduction_ratio=0.8):
+    """Reads the dataset from the csv file. It also balances the dataset by flipping the images and steering angles.
 
     Args:
         json_folder (str): Path to json folder.
@@ -56,7 +76,18 @@ def readDataset(json_folder, step=15, transform=lambda x:x, output_folder=None):
     df['img'] = df['img'].apply(lambda x: np.asarray(Image.open(os.path.join(json_folder, 'img', x))))
     df_flip['img'] = df_flip['img'].apply(lambda x: np.fliplr(np.asarray(Image.open(os.path.join(json_folder, 'img', x)))))
     df_flip['steering'] = -df_flip['steering']
+    if reduction_ratio:
+        df_non_zero = df[(df['steering'] > 0.0253) | (df['steering'] < -0.0253)]
+        df_zero = df[(df['steering'] <= 0.0253) | (df['steering'] >= -0.0253)]
+        df_zero = df_zero.sample(frac=1-reduction_ratio).reset_index(drop=True)
+        df = pd.concat([df_non_zero, df_zero], ignore_index=True)
+        df_flip_non_zero = df_flip[(df_flip['steering'] > 0.0253) | (df_flip['steering'] < -0.0253)]
+        df_flip_zero = df_flip[(df_flip['steering'] <= 0.0253) | (df_flip['steering'] >= -0.0253)]
+        df_flip_zero = df_flip_zero.sample(frac=1-reduction_ratio).reset_index(drop=True)
+        df_flip = pd.concat([df_flip_non_zero, df_flip_zero], ignore_index=True)
     if output_folder:
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
         os.makedirs(output_folder, exist_ok=True)
         os.makedirs(os.path.join(output_folder, 'images'), exist_ok=True)
         for i in tqdm(range(len(df))):
@@ -94,7 +125,7 @@ if __name__ == '__main__':
     ##  Uncomment the following lines to generate the dataset (with flipped images) in ds_beamng folder...
     json_folder = 'ds_beamng_raw'
     json2CSV(json_folder, step=15)
-    df = readDataset(json_folder, step=15, output_folder='ds_beamng')
+    df = readDataset(json_folder, step=15, output_folder='ds_beamng', reduction_ratio=0.9)
 
     ##  Reading the dataset from ds_beamng folder...
     y_transform = lambda y: y/0.11

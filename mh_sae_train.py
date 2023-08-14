@@ -21,7 +21,7 @@ if gpus:
 X_train_u, y_train_u, X_val_u, y_val_u, X_test_u, y_test_u = loadDataset('beamng')
 
 ##  Building models...
-model_name = 'mh_csae_beamng'
+model_name = 'mh_sae_beamng'
 latent_dim = 20
 
 model_q = buildQ(type_='sae')
@@ -35,6 +35,6 @@ model = MHAE(input_dim=(160, 320, 3), latent_dim=latent_dim, model_p=model_p, mo
 model.compile(optimizer='adam', run_eagerly=True)
 # model.load_weights(f'{model_name}_weights.h5') if os.path.exists(f'{model_name}_weights.h5') else None
 log.info('\033[92m' + 'Model loaded!' + '\033[0m')
-model.fit(X_train_u, epochs=10, batch_size=32)
+model.fit(X_train_u, epochs=20, batch_size=32)
 model.generateGIF(f'{model_name}.gif')
 model.save_weights(f'{model_name}_weights.h5')

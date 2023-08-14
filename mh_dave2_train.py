@@ -37,8 +37,9 @@ else:
     log.info('No GPUs found')
 
 dataset = 'udacity'  ##  'udacity' or 'beamng'
-model_name = f'mh_dave2_{dataset}'
-epochs = 100
+dave2 = False
+model_name = f'mh_{"dave2" if dave2 else "cnn"}_{dataset}'
+epochs = 20
 batch_size = 64
 
 ##  Dataset...
@@ -55,14 +56,14 @@ datagen_test = datagen.flow(X_test, y_test, batch_size=32, shuffle=True, seed=42
 
 ##  Model...
 image_shape = X_train.shape[1:]
-model = generateModel(image_shape)
+model = generateModel(image_shape, dave2=dave2)
 model.compile(optimizer='adam', loss='mae')
 ckpt = ModelCheckpoint(model_name, monitor='val_loss', verbose=1, save_best_only=True, mode='min', save_weights_only=False)
 history = model.fit(datagen_train, epochs=epochs, validation_data=datagen_val, callbacks=[ckpt])
 ##  Training...
 
 
-model = tf.keras.models.load_model(model_name)
+model = tf.keras.models.load_model(model_name) if os.path.exists(model_name) else None
 log.info('\033[92m' + 'Model loaded!' + '\033[0m')
 
 ##  Evaluation...

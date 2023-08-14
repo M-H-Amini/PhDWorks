@@ -68,6 +68,7 @@ model_folders = []
 model_names = []
 ##  Loading dave2 models...
 for model in os.listdir('models'):
+    # if 'autumn' in model:
     os.path.isdir((model_folder := os.path.join('models', model))) and (model_folders.append(model_folder) or model_names.append(model_folder[10:]))
 
 model_folders.extend(['mh_cnn_udacity', 'mh_chauffeur_udacity', 'mh_epoch_udacity', 'mh_autumn_udacity', 'mh_dave2_beamng'])
@@ -92,3 +93,4 @@ df_eval = pd.DataFrame(df_eval, index=df_index).T
 df_eval.rename(index={model_folders[i]:model_names[i] for i in range(len(model_folders))}, inplace=True)
 
 df_eval.to_latex('eval_dave2_offline.tex', float_format='%.3f')
+df_eval.to_csv('eval_dave2_offline.csv', float_format='%.3f')
