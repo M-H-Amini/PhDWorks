@@ -56,8 +56,8 @@ def evaluate(train, val, test, model, verbose=True):
  
 
 ##  Datasets...
-ds_names = ['udacity', 'beamng', 'saevae']  #  , 'dclgan', 'saevae', 'magenta']
-df_index = ['UdacityJungle', 'BeamNG', 'SAEVAE']
+ds_names = ['udacity', 'beamng', 'saevae', 'cycle']  #  , 'dclgan', 'saevae', 'magenta']
+df_index = ['UdacityJungle', 'BeamNG', 'SAEVAE', 'Cycle']
 ds = [loadDataset(ds_name) for ds_name in ds_names]
 func_map = lambda x: {'total': (np.concatenate((x[0], x[4]), axis=0), np.concatenate((x[1], x[5]), axis=0)), 'test': (x[4], x[5])}
 ds = map(func_map, ds)
@@ -67,9 +67,9 @@ log.info('Evaluating models...')
 model_folders = []
 model_names = []
 ##  Loading dave2 models...
-for model in os.listdir('models'):
-    # if 'autumn' in model:
-    os.path.isdir((model_folder := os.path.join('models', model))) and (model_folders.append(model_folder) or model_names.append(model_folder[10:]))
+# for model in os.listdir('models'):
+#     # if 'autumn' in model:
+#     os.path.isdir((model_folder := os.path.join('models', model))) and (model_folders.append(model_folder) or model_names.append(model_folder[10:]))
 
 model_folders.extend(['mh_cnn_udacity', 'mh_chauffeur_udacity', 'mh_epoch_udacity', 'mh_autumn_udacity', 'mh_dave2_beamng'])
 model_names.extend(['CNNUdacity', 'ChauffeurUdacity', 'EpochUdacity', 'AutumnUdacity', 'Dave2BeamNG'])

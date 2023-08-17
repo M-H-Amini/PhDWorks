@@ -19,3 +19,10 @@ ds_*/
 *.zip
 style_model/
 *.pdf
+temp.py
+mh_autumn_udacity/
+mh_chauffeur_udacity/
+*_udacity/
+*_beamng/
+models/
+model_checkpoints/

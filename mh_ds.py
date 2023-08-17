@@ -24,6 +24,10 @@ def loadDataset(dataset='udacity', resize=True):
         x_transform, y_transform = lambda x: x / 255., lambda y: y/0.11
         X_train, y_train, X_val, y_val, X_test, y_test = prepareDatasetBeamNG('ds_beamng', test_size=0.1, val_size=0.1, random_state=28, x_transform=x_transform, y_transform=y_transform, show=False)
         return X_train, y_train, X_val, y_val, X_test, y_test
+    elif dataset == 'cycle':
+        x_transform, y_transform = lambda x: x / 255., lambda y: y/0.11
+        X_train, y_train, X_val, y_val, X_test, y_test = prepareDatasetBeamNG('ds_beamng_cycle', test_size=0.1, val_size=0.1, random_state=28, x_transform=x_transform, y_transform=y_transform, show=False)
+        return X_train, y_train, X_val, y_val, X_test, y_test
     elif dataset == 'mnist':
         (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
         X_train = np.concatenate((X_train[..., np.newaxis], X_train[..., np.newaxis], X_train[..., np.newaxis]), axis=-1)
@@ -148,7 +152,7 @@ def visualize(X1, X2, output=None, show=True):
 if __name__ == '__main__':
     # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('udacity')
     # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('beamng')
-    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('saevae')
+    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('cycle')
     # X = np.concatenate([X_train, X_val, X_test])
     y = np.concatenate([y_train, y_test])
     print(X_train.min(), X_train.max())
