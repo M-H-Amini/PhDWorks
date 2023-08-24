@@ -71,8 +71,8 @@ model_names = []
 #     # if 'autumn' in model:
 #     os.path.isdir((model_folder := os.path.join('models', model))) and (model_folders.append(model_folder) or model_names.append(model_folder[10:]))
 
-model_folders.extend(['mh_cnn_udacity', 'mh_chauffeur_udacity', 'mh_epoch_udacity', 'mh_autumn_udacity', 'mh_dave2_beamng'])
-model_names.extend(['CNNUdacity', 'ChauffeurUdacity', 'EpochUdacity', 'AutumnUdacity', 'Dave2BeamNG'])
+model_folders.extend(['mh_cnn_udacity', 'mh_chauffeur_udacity', 'mh_epoch_udacity', 'mh_autumn_udacity', 'mh_dave2_udacity', 'mh_dave2_beamng'])
+model_names.extend(['CNNUdacity', 'ChauffeurUdacity', 'EpochUdacity', 'AutumnUdacity', 'Dave2Udacity', 'Dave2BeamNG'])
 
 
 models = {key: loadModel(key) for key in model_folders}
@@ -82,8 +82,8 @@ for i, model_key in enumerate(models.keys()):
     model = models[model_key]
     model_name = model_names[i]
     for j, ds_name in enumerate(ds.keys()):
-        if (i == j and i < 2) or (i==2 and j==0) or (i==3 and j==0) or (i==4 and j==0):  ##  i < 2 to test all of DCLGAN for Dave2Git
-            print(f'{model_name} on test part of {ds_name}')
+        if 'beamng' in model_key.lower() and 'beamng' in ds_name.lower():  ##  To use test part of beamng dataset for beamng models
+            print(f'{model_name} on test part of {ds_name}, shape: {ds[ds_name]["test"][0].shape}')
             df_eval[model_key].append(evaluate(train=None, val=None, test=ds[ds_name]['test'], model=model, verbose=False)['test'])
         else:
             print(f'{model_name} on total part of {ds_name}')

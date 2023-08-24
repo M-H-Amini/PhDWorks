@@ -172,42 +172,9 @@ class MHStyler:
         opt = tf.keras.optimizers.Adam(learning_rate=0.02, beta_1=0.99, epsilon=1e-1)
         for i in range(n):
             self.train_step(image, opt, self.style_weight, self.content_weight, self.total_variation_weight, self.num_content_layers, self.num_style_layers)
-        return np.array(image * 255., dtype=np.uint8).squeeze()
+        return np.array(image * 255., dtype=np.uint8)
 
 
-
-
-# content_path = 'img_beamng_0.png'
-# style_path = 'img_udacity_0.png'
-
-# content_image = load_img(content_path)
-# style_image = load_img(style_path)
-
-# content_layers = ['block5_conv2'] 
-
-# style_layers = ['block1_conv1',
-#                 'block2_conv1',
-#                 'block3_conv1', 
-#                 'block4_conv1', 
-#                 'block5_conv1']
-# num_content_layers = len(content_layers)
-# num_style_layers = len(style_layers)
-
-# extractor = StyleContentModel(style_layers, content_layers)
-
-# style_targets = extractor(style_image)['style']
-# content_targets = extractor(content_image)['content']
-
-# image = tf.Variable(content_image)
-
-# style_weight=1e-2
-# content_weight=1e4
-
-# opt = tf.keras.optimizers.Adam(learning_rate=0.02, beta_1=0.99, epsilon=1e-1)
-
-# total_variation_weight=30
-
-# train_step(image)
 if __name__ == '__main__':
     mh_styler = MHStyler('img_udacity_0.png')
     img = plt.imread('img_beamng_0.png').copy()

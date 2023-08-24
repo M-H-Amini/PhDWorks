@@ -13,9 +13,6 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-tfds.disable_progress_bar()
-autotune = tf.data.AUTOTUNE
-
 # Define the standard image size.
 orig_img_size = (286, 286)
 # Size of the random crops to be used during training.
@@ -24,10 +21,6 @@ input_img_size = (256, 256, 3)
 kernel_init = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
 # Gamma initializer for instance normalization.
 gamma_init = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
-
-buffer_size = 256
-batch_size = 1
-
 
 def normalize_img(img):
     img = tf.cast(img, dtype=tf.float32)
@@ -246,14 +239,6 @@ def get_discriminator(
     return model
 
 
-# Get the generators
-gen_G = get_resnet_generator(name="generator_G")
-gen_F = get_resnet_generator(name="generator_F")
-
-# Get the discriminators
-disc_X = get_discriminator(name="discriminator_X")
-disc_Y = get_discriminator(name="discriminator_Y")
-
 class CycleGan(keras.Model):
     def __init__(
         self,
@@ -418,9 +403,6 @@ class GANMonitor(keras.callbacks.Callback):
         plt.show()
         plt.close()
 
-# Loss function for evaluating adversarial loss
-adv_loss_fn = keras.losses.MeanSquaredError()
-
 # Define the loss function for the generators
 def generator_loss_fn(fake):
     fake_loss = adv_loss_fn(tf.ones_like(fake), fake)
@@ -433,47 +415,64 @@ def discriminator_loss_fn(real, fake):
     fake_loss = adv_loss_fn(tf.zeros_like(fake), fake)
     return (real_loss + fake_loss) * 0.5
 
+class MHCycleGAN:
+    def __init__(self, weights_path="./model_checkpoints/cyclegan_checkpoints.010"):
+        self.gen_G = get_resnet_generator(name="generator_G")
+        self.gen_F = get_resnet_generator(name="generator_F")
+        self.disc_X = get_discriminator(name="discriminator_X")
+        self.disc_Y = get_discriminator(name="discriminator_Y")
+        self.adv_loss_fn = keras.losses.MeanSquaredError()
+        self.cycle_gan_model = CycleGan(
+            generator_G=self.gen_G, generator_F=self.gen_F, discriminator_X=self.disc_X, discriminator_Y=self.disc_Y
+        )
+        self.cycle_gan_model.load_weights(weights_path).expect_partial()
+        print("\033[92m" + "CycleGAN weights loaded successfully" + "\033[0m")
 
-# Create cycle gan model
-cycle_gan_model = CycleGan(
-    generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
-)
+    def __call__(self, X):
+        """
+            Expects X to be normalized between 0 and 1
+        """
+        if len(X.shape) == 3:
+            X = np.expand_dims(X, axis=0)
+        X = np.array(X, dtype=np.float32) * 2 - 1
+        shape_org = X.shape[1:3]
+        X = tf.image.resize(X, (256, 256)).numpy()
+        X_hat = self.gen_G.predict(X)
+        X_hat = tf.image.resize(X_hat, shape_org).numpy()
+        X_hat = X_hat - X_hat.min()
+        X_hat = X_hat / X_hat.max()
+        return X_hat
 
-# Compile the model
-cycle_gan_model.compile(
-    gen_G_optimizer=keras.optimizers.legacy.Adam(learning_rate=2e-4, beta_1=0.5),
-    gen_F_optimizer=keras.optimizers.legacy.Adam(learning_rate=2e-4, beta_1=0.5),
-    disc_X_optimizer=keras.optimizers.legacy.Adam(learning_rate=2e-4, beta_1=0.5),
-    disc_Y_optimizer=keras.optimizers.legacy.Adam(learning_rate=2e-4, beta_1=0.5),
-    gen_loss_fn=generator_loss_fn,
-    disc_loss_fn=discriminator_loss_fn,
-)
-# Callbacks
-plotter = GANMonitor()
-checkpoint_filepath = "./model_checkpoints/cyclegan_checkpoints.005"
+if __name__ == "__main__":
+    img = plt.imread('img_beamng_0.png').copy()
+    mhg = MHCycleGAN()
+    X_hat = mhg(img)
+    print('X_hat: ', X_hat.shape, X_hat.min(), X_hat.max())
+    plt.figure()
+    plt.imshow(X_hat[0])
+    plt.savefig('temp.png')
+    plt.close()
 
 
-cycle_gan_model.load_weights(checkpoint_filepath).expect_partial()
-print("Weights loaded successfully")
 
-img_folder = 'ds_beamng/images'
-df = pd.read_csv('ds_beamng/ds_beamng.csv')
-img_files = list(df['img_path'])
-img_names = img_files.copy()
-img_files = [os.path.join(img_folder, img_file) for img_file in img_files]
-X = np.array([plt.imread(img).copy() for img in img_files], dtype=np.float32) * 2 - 1
-print(X.shape, X.min(), X.max())
-shape_org = X.shape
-X = tf.image.resize(X, (256, 256)).numpy()
-X_hat = gen_G.predict(X)
-print('X_hat: ', X_hat.shape, X_hat.min(), X_hat.max())
-X_hat = tf.image.resize(X_hat, shape_org[1:3])
-os.makedirs('ds_beamng_cycle', exist_ok=True)
-os.makedirs('ds_beamng_cycle/images', exist_ok=True)
-for i, x in enumerate(tqdm(X_hat)):
-    x = (x.numpy() - x.numpy().min())
-    x = x / x.max()
-    x = (x * 255).astype(np.uint8)
-    img_path = 'ds_beamng_cycle/images/' + img_names[i]
-    plt.imsave(img_path, x)
+# img_folder = 'ds_beamng/images'
+# df = pd.read_csv('ds_beamng/ds_beamng.csv')
+# img_files = list(df['img_path'])
+# img_names = img_files.copy()
+# img_files = [os.path.join(img_folder, img_file) for img_file in img_files]
+# X = np.array([plt.imread(img).copy() for img in img_files], dtype=np.float32) * 2 - 1
+# print(X.shape, X.min(), X.max())
+# shape_org = X.shape
+# X = tf.image.resize(X, (256, 256)).numpy()
+# X_hat = gen_G.predict(X)
+# print('X_hat: ', X_hat.shape, X_hat.min(), X_hat.max())
+# X_hat = tf.image.resize(X_hat, shape_org[1:3])
+# os.makedirs('ds_beamng_cycle', exist_ok=True)
+# os.makedirs('ds_beamng_cycle/images', exist_ok=True)
+# for i, x in enumerate(tqdm(X_hat)):
+#     x = (x.numpy() - x.numpy().min())
+#     x = x / x.max()
+#     x = (x * 255).astype(np.uint8)
+#     img_path = 'ds_beamng_cycle/images/' + img_names[i]
+#     plt.imsave(img_path, x)
 

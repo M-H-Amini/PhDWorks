@@ -36,10 +36,10 @@ if gpus:
 else:
     log.info('No GPUs found')
 
-dataset = 'udacity'  ##  'udacity' or 'beamng'
-dave2 = False
+dataset = 'udacitybeamng'  ##  'udacity' or 'beamng'
+dave2 = True
 model_name = f'mh_{"dave2" if dave2 else "cnn"}_{dataset}'
-epochs = 20
+epochs = 50
 batch_size = 64
 
 ##  Dataset...

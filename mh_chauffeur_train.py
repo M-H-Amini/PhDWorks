@@ -39,7 +39,7 @@ else:
     log.info('No GPUs found')
 
 
-dataset = 'udacity'  ##  'udacity' or 'beamng'
+dataset = 'udacitybeamng'  ##  'udacity' or 'beamng'
 model_name = f'mh_chauffeur_{dataset}'
 epochs = 50
 batch_size = 64

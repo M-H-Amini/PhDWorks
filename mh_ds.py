@@ -24,6 +24,16 @@ def loadDataset(dataset='udacity', resize=True):
         x_transform, y_transform = lambda x: x / 255., lambda y: y/0.11
         X_train, y_train, X_val, y_val, X_test, y_test = prepareDatasetBeamNG('ds_beamng', test_size=0.1, val_size=0.1, random_state=28, x_transform=x_transform, y_transform=y_transform, show=False)
         return X_train, y_train, X_val, y_val, X_test, y_test
+    elif dataset == 'udacitybeamng':
+        X_train_u, y_train_u, X_val_u, y_val_u, X_test_u, y_test_u = loadDataset('udacity')
+        X_train_b, y_train_b, X_val_b, y_val_b, X_test_b, y_test_b = loadDataset('beamng')
+        X_train = np.concatenate((X_train_u, X_train_b), axis=0)
+        y_train = np.concatenate((y_train_u, y_train_b), axis=0)
+        X_val = np.concatenate((X_val_u, X_val_b), axis=0)
+        y_val = np.concatenate((y_val_u, y_val_b), axis=0)
+        X_test = X_test_b
+        y_test = y_test_b
+        return X_train, y_train, X_val, y_val, X_test, y_test
     elif dataset == 'cycle':
         x_transform, y_transform = lambda x: x / 255., lambda y: y/0.11
         X_train, y_train, X_val, y_val, X_test, y_test = prepareDatasetBeamNG('ds_beamng_cycle', test_size=0.1, val_size=0.1, random_state=28, x_transform=x_transform, y_transform=y_transform, show=False)
@@ -150,12 +160,22 @@ def visualize(X1, X2, output=None, show=True):
     
     
 if __name__ == '__main__':
-    # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('udacity')
-    # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('beamng')
-    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('cycle')
+    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('udacity')
+    print(f'Udaicty: X_train.shape: {X_train.shape}, y_train.shape: {y_train.shape}')
+    print(f'Udaicty: X_val.shape: {X_val.shape}, y_val.shape: {y_val.shape}')
+    print(f'Udaicty: X_test.shape: {X_test.shape}, y_test.shape: {y_test.shape}')
+    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('beamng')
+    print(f'BeamNG: X_train.shape: {X_train.shape}, y_train.shape: {y_train.shape}')
+    print(f'BeamNG: X_val.shape: {X_val.shape}, y_val.shape: {y_val.shape}')
+    print(f'BeamNG: X_test.shape: {X_test.shape}, y_test.shape: {y_test.shape}')
+    X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('udacitybeamng')
+    print(f'UdaictyBeamNG: X_train.shape: {X_train.shape}, y_train.shape: {y_train.shape}')
+    print(f'UdaictyBeamNG: X_val.shape: {X_val.shape}, y_val.shape: {y_val.shape}')
+    print(f'UdaictyBeamNG: X_test.shape: {X_test.shape}, y_test.shape: {y_test.shape}')
+    # X_train, y_train, X_val, y_val, X_test, y_test = loadDataset('cycle')
     # X = np.concatenate([X_train, X_val, X_test])
     y = np.concatenate([y_train, y_test])
-    print(X_train.min(), X_train.max())
+    # print(X_train.min(), X_train.max())
     # print('X_train.shape:', X_train.shape, 'y_train.shape:', y_train.shape)
 
     # X_train, y_train, _, _, X_test, y_test = loadDataset('cats_vs_dogs')

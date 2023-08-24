@@ -27,3 +27,8 @@ mh_chauffeur_udacity/
 models/
 model_checkpoints/
 mh_autumn_udacity_old/
+mh_autumn_udacitybeamng/
+mh_dave2_udacitybeamng/
+mh_chauffeur_udacitybeamng/
+mh_epoch_udacitybeamng/
+generated*.png
